@@ -1,29 +1,33 @@
-[cmake]
-version = "3.15"
-arguments = [
-    "CMAKE_SIZEOF_VOID_P=8",
-    "ZYDIS_BUILD_TOOLS=OFF",
-    "ZYDIS_BUILD_EXAMPLES=OFF"
-]
-
 [project]
 name = "vmpfix"
 
-cmake-before = """
-add_subdirectory(Blackbone/src)
+[options]
+ZYDIS_BUILD_TOOLS = false
+ZYDIS_BUILD_EXAMPLES = false
+
+[fetch-content.argparse]
+git = "https://github.com/p-ranav/argparse.git"
+tag = "v2.2"
+
+[fetch-content.linux-pe]
+git = "https://github.com/can1357/linux-pe.git"
+tag = "ce24224"
+
+[fetch-content.Zydis]
+git = "https://github.com/zyantific/zydis.git"
+tag = "9fc98de"
+
+[subdir."Blackbone/src/BlackBone"]
+cmake-after = """
+target_compile_features(BlackBone PUBLIC cxx_std_17)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     link_directories(Blackbone/src/3rd_party/DIA/lib/amd64)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
     link_directories(Blackbone/src/3rd_party/DIA/lib)
 endif()
+target_link_libraries(BlackBone PUBLIC diaguids.lib)
+target_include_directories(BlackBone PUBLIC Blackbone/src)
 """
-
-# [find-package]
-
-[fetch-content]
-argparse = { git = "https://github.com/p-ranav/argparse.git" }
-linux-pe = { git = "https://github.com/can1357/linux-pe.git" }
-Zydis    = { git = "https://github.com/zyantific/zydis.git" }
 
 [target.vmpfix]
 type = "executable"
@@ -33,14 +37,10 @@ sources = [
 ]
 include-directories = [
     "include",
-    "Blackbone/src",
 ]
-
 compile-features = ["cxx_std_20"]
-
 link-libraries = [
     "BlackBone",
-    "diaguids",
     "linux-pe",
     "Zydis",
     "argparse"

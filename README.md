@@ -106,7 +106,8 @@ Every other stub can be considered as `mov` stub. There are some patterns as wel
 ```
 git clone --recurse-submodules https://github.com/archercreat/vmpfix.git
 cd vmpfix
-cmkr build
+cmake -B build
+cmake --build build
 ```
 
 ## Tests
