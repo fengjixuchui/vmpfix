@@ -1,10 +1,16 @@
 #include <optional>
 #include <set>
+#include <stdexcept>
 
 #include "vmp_analyzer.hpp"
 #include "disasm.hpp"
 
 static std::set<std::string_view> vmp_names;
+
+inline static constexpr void abort_if(bool cond, const char* message = nullptr)
+{
+    if (cond) throw std::runtime_error(message);
+}
 
 std::string vmp_stub_t::to_string() const
 {
@@ -61,7 +67,7 @@ vmp_stub_t analyze_stub(const instruction_t& last_ins, const instruction_t& call
     {
         out.type        = stub_type_t::jump;
         auto has_pop    = routine.prev([](const auto& ins){ return ins.i.mnemonic == ZYDIS_MNEMONIC_POP; }, 2);        
-        if (has_pop != -1) assert(last_ins.i.mnemonic == ZYDIS_MNEMONIC_PUSH);
+        if (has_pop != -1) abort_if(last_ins.i.mnemonic != ZYDIS_MNEMONIC_PUSH);
         out.ins_address = has_pop != -1 ? last_ins.runtime_addr : call_ins.runtime_addr;
         out.ins_size    = has_pop != -1 ? last_ins.i.length + call_ins.i.length : 6;
     }
@@ -75,7 +81,7 @@ vmp_stub_t analyze_stub(const instruction_t& last_ins, const instruction_t& call
         {
             // Make sure lea increment is present.
             //
-            assert(lea_inc != -1);
+            abort_if(lea_inc == -1);
             out.ins_size    = call_ins.i.length + lea_inc_v;
             out.ins_address = call_ins.runtime_addr;
         }
@@ -83,13 +89,13 @@ vmp_stub_t analyze_stub(const instruction_t& last_ins, const instruction_t& call
         {
             // Make sure no lea increment is present and last instruction before the call is `push`.
             //
-            assert(lea_inc == -1);
-            assert(last_ins.i.mnemonic == ZYDIS_MNEMONIC_PUSH);
+            abort_if(lea_inc != -1);
+            abort_if(last_ins.i.mnemonic != ZYDIS_MNEMONIC_PUSH);
             out.ins_size    = last_ins.i.length + call_ins.i.length;
             out.ins_address = last_ins.runtime_addr;
         }
         else
-            assert(false);
+            abort_if(true, "Invalid displacement. Should never happen");
     }
     // Everything else should be considered as `mov`.
     //
@@ -119,14 +125,14 @@ vmp_stub_t analyze_stub(const instruction_t& last_ins, const instruction_t& call
                 && ins.operands[1].type == ZYDIS_OPERAND_TYPE_MEMORY;
         }, (int)routine.size() - 4);
 
-        assert(assign != -1 || lea != -1);
+        abort_if(assign != -1 && lea != -1);
         // Get output register.
         //
         out.output_reg = assign != -1 ? routine[assign].operands[0].reg.value : routine[lea].operands[0].reg.value;
 
         if (stack_disp == 1)
         {
-            assert(last_ins.i.mnemonic == ZYDIS_MNEMONIC_PUSH);
+            abort_if(last_ins.i.mnemonic != ZYDIS_MNEMONIC_PUSH);
             out.ins_size    = last_ins.i.length + call_ins.i.length + lea_inc_v;
             out.ins_address = last_ins.runtime_addr;
         }
@@ -137,12 +143,12 @@ vmp_stub_t analyze_stub(const instruction_t& last_ins, const instruction_t& call
         }
         else if (stack_disp == -1)
         {
-            assert(last_ins.i.mnemonic == ZYDIS_MNEMONIC_POP);
+            abort_if(last_ins.i.mnemonic != ZYDIS_MNEMONIC_POP);
             out.ins_size    = last_ins.i.length + call_ins.i.length + lea_inc_v;
             out.ins_address = last_ins.runtime_addr;
         }
         else
-            assert(false);
+            abort_if(true, "Invalid displacement. Should never happen");
     }
     return out;
 }
@@ -355,7 +361,7 @@ std::vector<uint8_t> encode_stub(const vmp_stub_t& stub, uint64_t iat, bool is_6
     if (stub.type == stub_type_t::jump) encode_jmp();
 
     size_t encoded_len = out.size();
-    assert(ZYAN_SUCCESS(ZydisEncoderEncodeInstruction(&req, out.data(), &encoded_len)));
+    abort_if(!ZYAN_SUCCESS(ZydisEncoderEncodeInstruction(&req, out.data(), &encoded_len)));
     // Resize to instruction length.
     //
     out.resize(encoded_len);
