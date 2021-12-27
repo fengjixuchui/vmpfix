@@ -27,12 +27,9 @@ if(CMKR_ROOT_PROJECT)
 	configure_file(cmake.toml cmake.toml COPYONLY)
 endif()
 
-add_subdirectory(Blackbone/src)
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    link_directories(Blackbone/src/3rd_party/DIA/lib/amd64)
-elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    link_directories(Blackbone/src/3rd_party/DIA/lib)
-endif()
+# Options
+option(ZYDIS_BUILD_TOOLS OFF)
+option(ZYDIS_BUILD_EXAMPLES OFF)
 
 project(vmpfix)
 
@@ -43,6 +40,8 @@ FetchContent_Declare(
 	argparse
 	GIT_REPOSITORY
 		https://github.com/p-ranav/argparse.git
+	GIT_TAG
+		v2.2
 )
 FetchContent_MakeAvailable(argparse)
 
@@ -51,6 +50,8 @@ FetchContent_Declare(
 	linux-pe
 	GIT_REPOSITORY
 		https://github.com/can1357/linux-pe.git
+	GIT_TAG
+		ce24224
 )
 FetchContent_MakeAvailable(linux-pe)
 
@@ -59,8 +60,29 @@ FetchContent_Declare(
 	Zydis
 	GIT_REPOSITORY
 		https://github.com/zyantific/zydis.git
+	GIT_TAG
+		9fc98de
 )
 FetchContent_MakeAvailable(Zydis)
+
+# Blackbone/src/BlackBone
+set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
+if(CMAKE_FOLDER)
+	set(CMAKE_FOLDER "${CMAKE_FOLDER}/Blackbone/src/BlackBone")
+else()
+	set(CMAKE_FOLDER "Blackbone/src/BlackBone")
+endif()
+add_subdirectory("Blackbone/src/BlackBone")
+set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
+
+target_compile_features(BlackBone PUBLIC cxx_std_17)
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    link_directories(Blackbone/src/3rd_party/DIA/lib/amd64)
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    link_directories(Blackbone/src/3rd_party/DIA/lib)
+endif()
+target_link_libraries(BlackBone PUBLIC diaguids.lib)
+target_include_directories(BlackBone PUBLIC Blackbone/src)
 
 # Target vmpfix
 set(CMKR_TARGET vmpfix)
@@ -99,12 +121,10 @@ target_compile_features(vmpfix PRIVATE
 
 target_include_directories(vmpfix PRIVATE
 	include
-	"Blackbone/src"
 )
 
 target_link_libraries(vmpfix PRIVATE
 	BlackBone
-	diaguids
 	linux-pe
 	Zydis
 	argparse
