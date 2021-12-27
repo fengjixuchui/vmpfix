@@ -25,6 +25,12 @@ Optional arguments:
 -m --module     VMProtected module name (default: main executable) [default: ""]
 ```
 
+Example commands:
+```
+vmpfix.exe -p 3336 -m beservice_x64.exe -s .be0 -s .be1 -i .be0
+vmpfix.exe -p 11250
+```
+
 VMProtect unpacking must be complete before running *VMPfix*.
 
 ## Details
