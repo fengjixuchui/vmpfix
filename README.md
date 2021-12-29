@@ -1,5 +1,5 @@
 # vmpfix
-*VMPfix* is a dynamic x86/x64 VMProtect 2.13-3.5 import fixer.
+*VMPfix* is a dynamic x86/x64 VMProtect 2.0-3.x import fixer.
 The main goal of this project was to build correct and reliable tool to fix imports in x86/x64 applications.
 
 Note: this tool does not dump and rebuild import directory. You can do this from your favorite debugger.
@@ -124,7 +124,7 @@ Successfully unpacked, dumped and ran:
 `vncviewer.exe x64 4158a5e55cbd6a5a8f4ed38befe2a8c9fa0c7a7fbc91709a31592dda95110517`
 
 ## Credits
-https://github.com/build-cpp/cmk
+https://github.com/build-cpp/cmkr
 
 https://github.com/can1357/linux-pe
 
